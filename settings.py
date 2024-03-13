@@ -24,7 +24,7 @@ In the config file:
 """
 
 # WEB3 Provider
-INFURA_KEY = "..."  # "YOUR-KEY"  # You can get one free KEY at https://www.infura.io
+INFURA_KEY = "...."  # "YOUR-KEY"  # You can get one free KEY at https://www.infura.io
 WEB3_PROVIDER_URL = f'https://mainnet.infura.io/v3/{INFURA_KEY}'
 
 

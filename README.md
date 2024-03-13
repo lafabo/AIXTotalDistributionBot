@@ -22,8 +22,8 @@ The TotalDistributionBot is a Python-based Telegram bot designed to monitor and 
 1.  **Clone the repository:**
 
 ```sh
-git clone https://github.com/yourusername/rewards-bot.git
-cd rewards-bot
+git clone https://github.com/lafabo/AIXTotalDistributionBot.git
+cd total_distibution_bot
 virtualenv -p Python3.9 venv
 ```
 
@@ -38,7 +38,7 @@ pip install -r requirements.txt
 ``` 
 4.  **Set up  variables:**
 
-Edit `config.py` file in the project root directory and add set the variables:
+Edit `settings.py` file in the project root directory and add set the variables:
 
 [**Infura**](https://infura.io):
 
@@ -55,18 +55,25 @@ You may send a link to you group to [@raw_data_bot](https://t.me/raw_data_bot) a
 
 >Note: Telegram Supergroups ID starts with - (minus), like -123
 
-**PostgreSQL**
-```HOST="example.com"```
-```USER="user"```
-```PASSWORD="*****"```
-```DBNAME="dbname"```
-```PORT="5432"```
+
+**PostgreSQL settings**
+
+```DB_HOST="example.com"```
+
+```DB_USER="user"```
+
+```DB_PASSWORD="*****"```
+
+```DB_NAME="dbname"```
+
+```DB_PORT="5432"```
+
 
 5. **Schedule**
 You can adjust schedule to your needs. 
-**blockchain_worker_trigger** — when retrieve new TotalDistribution events from smart contract logs
+**blockchain_events_trigger** — when retrieve new TotalDistribution events from smart contract logs
 ```python
-blockchain_worker_trigger = OrTrigger(  
+blockchain_events_trigger = OrTrigger(  
     [CronTrigger(hour=8, minute=58),
     ....  
      CronTrigger(hour=17, minute=58)])
@@ -81,6 +88,7 @@ telegram_report_trigger = OrTrigger(
 ```
 1-3 minutes delay between retrieving new events and sending the reports far enough to process new data.
 
+
 ## Usage
 
 1.  **Run the program:**
@@ -92,21 +100,33 @@ The bot will initialize DB (if not initilized yet), start to gather TotalDistrib
 
 At startup it will fetch new data and send report message. After that it will follow the schedule.
 
-For default values fetching logs and sending reports each 4 hours, and fetching events in a range last ~24 hours. The events will be stored in DB.
+For default values fetching logs and sending reports each 4 hours (but for demonstration porpouse i changed it to each 1 hour), and fetching events in a range last ~24 hours. The events will be stored in DB.
 
 > **Recommend** to run this program using something like [supervisord](https://supervisord.org/).
 >For auto restart if something go wrong. 
 
 2. **Get more events** 
-If you need to fetch more data (e.g. for analytics purpose) you can edit `blockchain/worker.py`:
+If you need to fetch more data (e.g. for analytics purpose) you can edit `blockchain/event.py` and add:
 ```python
 if __name__ == "__main__":  
-    run_worker(start_block, end_block)
+    last_block = *block num you want*
+    start_block = *block num you want*
+    # getting smart contract's logs with TotalDistribution event
+    logs = fetch_logs(start_block, last_block)
+    # decoding and processing logs
+    for log in logs:
+        event_data = decode_log(log)
+        # saving them as TotalDistribution objects to db
+        if event_data:
+            with get_session() as session:
+                store_event(event_data, session)
 ```
 and after then run 
 ```sh
-python blockchain/worker.py
+python blockchain/events.py
 ```
+
+
 ## PROGRAM FLOW
 ```mermaid
 graph TD;
@@ -126,49 +146,50 @@ flowchart TB
 %%{init: {'flowchart' : {'curve' : 'stepBefore'}}}%%
 
 subgraph On start
-    run.py -- Run on start --> get_and_process_blockchain_logs;
-    run.py -- Run on start --> Schedule
-	Schedule --> settings.py --> |CronTriggers \n schedule| Schedule;
-    Schedule --> |Run on CronTrigger|get_and_process_blockchain_logs;
-	Schedule --> |Run on CronTrigger|generate_and_send_report;
-	run.py -- Run on start --> generate_and_send_report;
-    run.py -- Run on start --> create_db_and_tables;
+    run.py -- "Run on start" --> get_and_process_blockchain_logs;
+    run.py -- "Run on start" --> Schedule
+    Schedule --> settings.py --> |CronTriggers schedule| Schedule;
+    Schedule --> |Run on CronTrigger| get_and_process_blockchain_logs;
+    Schedule --> |Run on CronTrigger| generate_and_send_report;
+    run.py -- "Run on start" --> generate_and_send_report;
+    run.py -- "Run on start" --> create_db_and_tables;
 end
 
 create_db_and_tables --> database;
 get_and_process_blockchain_logs --> |Fetches new TotalDistribution \n events from ETH blockchain tx logs| fetch_logs;
 
-subgraph db/database.py
+subgraph "db/database.py"
   store_event;
   get_events;
 end
 
 subgraph "blockchain/events.py"
-	fetch_logs --> |Decoding of event data and\n extracting relevant information|decode_log;
+    fetch_logs --> |Decoding of event data and\n extracting relevant information| decode_log;
 end
 
-decode_log ==> |Preparing data for\n SQLAlchemy Model| TotalDistributionEvent;
+decode_log ==> |Preparing data for SQLAlchemy Model| TotalDistributionEvent;
 
-subgraph db/model.py
+subgraph "db/model.py"
   TotalDistributionEvent;
 end
 
-TotalDistributionEvent ==> |Using SQLAlchemy ORM|store_event ==> database;	
-database .-> TotalDistributionEvent .->|TotalDistribution events \n with timestamp <= 24h ago|get_events.->|Processing and aggregating events\nto make statistics|prepare_report_data;
+TotalDistributionEvent ==> |Using SQLAlchemy ORM| store_event ==> database;	
+database -.-> TotalDistributionEvent -.-> |TotalDistribution events with timestamp <= 24h ago| get_events .-> |Processing and aggregating events to make statistics| prepare_report_data;
 
-subgraph bot/report
-  prepare_report_data --> |formating report aggregated \n data in markdown| create_report_message;
+subgraph "bot/report"
+  prepare_report_data --> |Formatting report aggregated data in markdown| create_report_message;
 end	
 
-subgraph PostgreSQL
+subgraph "PostgreSQL"
   database;
 end
 
 create_report_message --> send_report;
-	
-subgraph bot/bot
+    
+subgraph "bot/bot"
  send_report;
 end
+
 ```
 
 ## Contributing

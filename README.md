@@ -167,14 +167,14 @@ subgraph "blockchain/events.py"
     fetch_logs --> |Decoding of event data and\n extracting relevant information| decode_log;
 end
 
-decode_log ==> |Preparing data for SQLAlchemy Model| TotalDistributionEvent;
+decode_log ==> |Preparing data for SQLAlchemy Model| db/model.py;
 
 subgraph "db/model.py"
   TotalDistributionEvent;
 end
 
-TotalDistributionEvent ==> |Using SQLAlchemy ORM| store_event ==> database;	
-database -.-> TotalDistributionEvent -.-> |TotalDistribution events with timestamp <= 24h ago| get_events .-> |Processing and aggregating events to make statistics| prepare_report_data;
+db/model.py ==> |Using SQLAlchemy ORM| store_event ==> database;	
+database -.-> db/model.py -.-> |TotalDistribution events with timestamp <= 24h ago| get_events .-> |Processing and aggregating events to make statistics| prepare_report_data;
 
 subgraph "bot/report"
   prepare_report_data --> |Formatting report aggregated data in markdown| create_report_message;

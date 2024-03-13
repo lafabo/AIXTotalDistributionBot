@@ -24,12 +24,12 @@ In the config file:
 """
 
 # WEB3 Provider
-INFURA_KEY = "7101bc0ee34245179802673e7536680e"  # "YOUR-KEY"  # You can get one free KEY at https://www.infura.io
+INFURA_KEY = "..."  # "YOUR-KEY"  # You can get one free KEY at https://www.infura.io
 WEB3_PROVIDER_URL = f'https://mainnet.infura.io/v3/{INFURA_KEY}'
 
 
 # Telegram
-TELEGRAM_API_KEY = "7073298493:AAFdwCjg0CvnVaIgJiEJBmnb_aPskxg4ZqM"  # Telegram > @BotFather > Create New Bot
+TELEGRAM_API_KEY = "..."  # Telegram > @BotFather > Create New Bot
 TELEGRAM_CHAT_ID = -1002027272548  # Add @raw_data_bot to your chat or send to the bot chat's invite link to get id
 
 
